@@ -30,6 +30,13 @@ async def home():
       <body>
         <h1>PostgreSQL API</h1>
         <p>Go to <a href="/docs">/docs</a> for the Swagger UI</p>
+
+        <h1>The Team</h1>
+        <ul>
+          <li>Camila Sierra Pérez</li>
+          <li>Pedro Jeremías López Guzmán</li>
+          <li>Martín E. Zahnd</li>
+        </ul>
       </body>
     </html>
     """
