@@ -15,6 +15,7 @@ from service.phone import Phone
 import service.product as product_service
 from service.product import Product
 
+import service.receipt as receipt_service
 
 app = FastAPI()
 
@@ -125,6 +126,19 @@ async def update_product(product_id: int, product: Product):
 @app.delete("/products/{product_id}")
 async def remove_product(product_id: int):
     return await product_service.delete_product(product_id)
+
+
+# =============== Receipts ===============
+
+
+@app.get("/receipts")
+async def get_receipts():
+    return await receipt_service.get_receipts()
+
+
+@app.get("/receipts/{receipt_id}")
+async def get_receipt(receipt_id: int):
+    return await receipt_service.get_receipt_by_id(receipt_id)
 
 
 if __name__ == "__main__":
