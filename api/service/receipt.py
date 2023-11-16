@@ -69,7 +69,7 @@ async def _receipt_return(fetch: Awaitable, details_callback: Callable) -> dict:
                 details_dict[column] = str(row[index])
 
             # Calculate totals
-            (total_with_tax, total_no_tax) = calculate_total(
+            (total_no_tax, total_with_tax) = calculate_total(
                 row[2], row[0], float(receipt["iva"])
             )
 
