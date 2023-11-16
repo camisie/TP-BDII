@@ -2,23 +2,18 @@
 
 import sys
 
-from collections.abc import Awaitable
-
 from fastapi import HTTPException
-from pydantic import BaseModel
+
+from persistence.model.Client import Client
+from persistence import client as clientDao
 
 
-from .PsycopgCursor import PsycopgCursor
+async def _client_return(
+    rows: list[tuple[str, int], str, int] | tuple[str, int]
+) -> dict:
+    if not rows:
+        return {}
 
-
-class Client(BaseModel):
-    name: str
-    surname: str
-    address: str
-    active: int
-
-
-async def _client_return(fetch: Awaitable) -> dict:
     client_columns = [
         "id",
         "name",
@@ -29,10 +24,6 @@ async def _client_return(fetch: Awaitable) -> dict:
         "number",
         "kind",
     ]
-
-    rows = await fetch()
-    if not rows:
-        return {}
 
     clients = {"clients": []}
     try:
@@ -47,127 +38,36 @@ async def _client_return(fetch: Awaitable) -> dict:
     return clients
 
 
-async def _client_exists(client_id: int, aconn, acur) -> bool:
-    await acur.execute(
-        """
-        SELECT
-            1
-        FROM e01_cliente AS client
-        WHERE client.nro_cliente = (%s)
-        """,
-        (client_id,),
-    )
-    client = await acur.fetchone()
-    if client:
-        return True
-
-    return False
-
-
-async def client_exists(client_id: int) -> bool:
-    async with PsycopgCursor() as (aconn, acur):
-        return await _client_exists(client_id, aconn, acur)
-
-
 async def get_clients() -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-            SELECT
-                nro_cliente, nombre, apellido, direccion, activo
-            FROM e01_cliente
-            """
-        )
-
-        return await _client_return(acur.fetchall)
+    client = await clientDao.get_clients()
+    return await _client_return(client)
 
 
 async def get_client_by_id(client_id: int) -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-             SELECT
-                 nro_cliente, nombre, apellido, direccion, activo
-             FROM e01_cliente
-             WHERE nro_cliente = (%s)
-             """,
-            (client_id,),
-        )
+    client = await clientDao.get_client_by_id(client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
 
-        client = await _client_return(acur.fetchone)
-        if not client:
-            raise HTTPException(status_code=404, detail="Client not found")
-
-        return client
+    return await _client_return(client)
 
 
 async def create_client(client: Client) -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-             INSERT INTO
-                 e01_cliente (nombre, apellido, direccion, activo)
-             VALUES
-                 (%s, %s, %s, %s)
-             RETURNING
-                 nro_cliente
-             """,
-            (
-                client.name,
-                client.surname,
-                client.address,
-                client.active,
-            ),
-        )
-        await aconn.commit()
+    new_id = await clientDao.create_client(client)
 
-        inserted_id = await acur.fetchone()
-        inserted_id = inserted_id[0]
-
-        return await get_client_by_id(inserted_id)
+    return await get_client_by_id(new_id)
 
 
 async def update_client_by_id(client_id: int, new_client: Client) -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-        if not await _client_exists(client_id, aconn, acur):
-            raise HTTPException(status_code=404, detail="Client not found")
+    if not await clientDao.client_exists(client_id):
+        raise HTTPException(status_code=404, detail="Client not found")
 
-        query = """
-            UPDATE e01_cliente
-            SET nombre = %(name)s, apellido = %(surname)s, 
-                direccion = %(address)s,  activo = %(active)s
-            WHERE nro_cliente = %(id)s
-            """
-
-        await aconn.execute(
-            query,
-            {
-                "id": client_id,
-                "name": new_client.name,
-                "surname": new_client.surname,
-                "address": new_client.address,
-                "active": new_client.active,
-            },
-        )
-
-        await aconn.commit()
-
-        return await get_client_by_id(client_id)
+    await clientDao.update_client_by_id(client_id, new_client)
+    return await get_client_by_id(client_id)
 
 
 async def delete_client(client_id: int) -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-             DELETE 
-             FROM e01_cliente 
-             WHERE nro_cliente = (%s)
-             """,
-            (client_id,),
-        )
-        await aconn.commit()
-
-        return {}
+    await clientDao.delete_client(client_id)
+    return {}
 
 
 if __name__ == "__main__":
