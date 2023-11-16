@@ -2,150 +2,129 @@
 
 import sys
 
-from collections.abc import Awaitable
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
-import psycopg
+import service.client as client_service
+from service.client import Client
+
+import service.phone as phone_service
+from service.phone import Phone
+
+import service.product as product_service
+from service.product import Product
+
 
 app = FastAPI()
 
 
-class PsycopgCursor:
-    def __init__(self):
-        pass
-
-    async def __aenter__(self):
-        self.aconn = await psycopg.AsyncConnection.connect("dbname=bd2-tpo")
-        self.cursor = self.aconn.cursor()
-        return (self.aconn, self.cursor)
-
-    async def __aexit__(self, exception_type, exception_value, exception_traceback):
-        await self.aconn.commit()
-        await self.cursor.close()
-        await self.aconn.close()
-
-
-class Phone(BaseModel):
-    code: int
-    number: int
-    kind: str
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return """
+    <html>
+      <head>
+        <title>API :)</title>
+      </head>
+      <body>
+        <h1>PostgreSQL API</h1>
+        <p>Go to <a href="/docs">/docs</a> for the Swagger UI</p>
+      </body>
+    </html>
+    """
 
 
-class Client(BaseModel):
-    name: str
-    surname: str
-    address: str
-    active: int
-    phone: Phone | list[Phone]
-
-
-async def client_return(fetch: Awaitable) -> dict | list[dict]:
-    client_columns = [
-        "id",
-        "name",
-        "surname",
-        "address",
-        "active",
-        "code",
-        "number",
-        "kind",
-    ]
-    phone_columns = ["code", "number", "kind"]
-
-    rows = await fetch()
-    if not rows:
-        return {}
-
-    clients = {}
-    try:
-        clients["clients"] = [dict(zip(client_columns, map(str, row))) for row in rows]
-
-    except TypeError:
-        clients["clients"] = [dict(zip(client_columns, map(str, rows)))]
-
-    for client in clients["clients"]:
-        phone_data = {key: str(client.pop(key, None)) for key in phone_columns}
-        client["phone"] = phone_data
-
-    if len(clients["clients"]) == 1:
-        clients["clients"] = clients["clients"][0]
-
-    return clients
+# =============== Clients ===============
 
 
 @app.get("/clients")
 async def get_clients():
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-            SELECT 
-                client.nro_cliente, nombre, apellido, direccion, activo,
-                codigo_area, nro_telefono, tipo
-            FROM e01_cliente AS client 
-            LEFT JOIN e01_telefono AS phone
-                ON client.nro_cliente = phone.nro_cliente
-            """
-        )
-
-        return await client_return(acur.fetchall)
-
-
-@app.get("/clients/{client_id}")
-async def get_client(client_id: int):
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-            SELECT
-                client.nro_cliente, nombre, apellido, direccion, activo,
-                codigo_area, nro_telefono, tipo
-            FROM e01_cliente AS client 
-            LEFT JOIN e01_telefono AS phone
-                ON client.nro_cliente = phone.nro_cliente
-            WHERE client.nro_cliente = (%s)
-            """,
-            (client_id,),
-        )
-
-        return await client_return(acur.fetchone)
+    return await client_service.get_clients()
 
 
 @app.post("/clients")
 async def create_client(client: Client):
-    async with PsycopgCursor() as (aconn, acur):
-        await acur.execute(
-            """
-            INSERT INTO 
-                e01_cliente (nombre, apellido, direccion, activo)
-            VALUES
-                (%s, %s, %s, %s)
-            RETURNING
-                nro_cliente
-            """,
-            (
-                client.name,
-                client.surname,
-                client.address,
-                client.active,
-            ),
-        )
-        await aconn.commit()
+    return await client_service.create_client(client)
 
-        inserted_id = await acur.fetchone()
 
-        await acur.execute(
-            """
-            INSERT INTO 
-                e01_telefono (codigo_area, nro_telefono, tipo, nro_cliente)
-            VALUES
-                (%s, %s, %s, %s)
-            """,
-            (client.phone.code, client.phone.number, client.phone.kind, inserted_id[0]),
-        )
-        await aconn.commit()
+@app.get("/clients/{client_id}")
+async def get_client(client_id: int):
+    return await client_service.get_client_by_id(client_id)
 
-        return await get_client(inserted_id[0])
+
+@app.put("/clients/{client_id}")
+async def update_client(client_id: int, client: Client):
+    return await client_service.update_client_by_id(client_id, client)
+
+
+@app.delete("/clients/{client_id}")
+async def remove_client(client_id: int):
+    return await client_service.delete_client(client_id)
+
+
+# =============== Phones ===============
+
+
+@app.get("/phones")
+async def get_phones():
+    return await phone_service.get_phones()
+
+
+@app.get("/phones/{client_id}")
+async def get_phone_by_client_id(client_id: int):
+    return await phone_service.get_phone_by_client_id(client_id)
+
+
+@app.put("/phones/{client_id}")
+async def create_or_update_phone(client_id: int, phone: Phone):
+    return await phone_service.update_phone(client_id, phone)
+
+
+@app.post("/phones/{client_id}")
+async def create_phone(client_id: int, phone: Phone):
+    return await phone_service.create_phone(client_id, phone)
+
+
+@app.delete("/phones/{client_id}")
+async def remove_phone(client_id: int, code: int | None, number: int | None):
+    if code and number:
+        return await phone_service.delete_phone(client_id, code, number)
+    if not code and not number:
+        return await phone_service.delete_phones(client_id)
+
+    raise HTTPException(
+        status_code=400,
+        detail="Provide both code and number to remove a specific phone number,"
+        " or neither to remove all numbers from client",
+    )
+
+
+# =============== Products ===============
+
+
+@app.get("/products")
+async def get_products():
+    return await product_service.get_products()
+
+
+@app.post("/products")
+async def create_product(product: Product):
+    return await product_service.create_product(product)
+
+
+@app.get("/products/{product_id}")
+async def get_product(product_id: int):
+    return await product_service.get_product_by_id(product_id)
+
+
+@app.put("/products/{product_id}")
+async def update_product(product_id: int, product: Product):
+    return await product_service.update_product_by_id(product_id, product)
+
+
+@app.delete("/products/{product_id}")
+async def remove_product(product_id: int):
+    return await product_service.delete_product(product_id)
 
 
 if __name__ == "__main__":
