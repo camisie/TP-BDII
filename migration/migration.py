@@ -27,8 +27,6 @@ async def migrate_products():
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM e01_producto")
     columns = [desc[0] for desc in cursor.description]
-    indexOfCodigo = columns.index('codigo_producto')
-    columns[indexOfCodigo] = '_id'
     result = [dict(zip(columns, row)) for row in cursor]
     cursor.close()
     connection.close()
@@ -50,8 +48,6 @@ async def migrate_clients():
                    "FROM E01_CLIENTE C LEFT JOIN E01_TELEFONO T ON C.nro_cliente = T.nro_cliente "
                    "GROUP BY C.nro_cliente")
     columns = [desc[0] for desc in cursor.description]
-    indexOfCodigo = columns.index('nro_cliente')
-    columns[indexOfCodigo] = '_id'
     result = [dict(zip(columns, row)) for row in cursor]
     for row in result:
         if row['telefono'][0]['numero'] is None:
@@ -75,8 +71,6 @@ async def migrate_facturas():
     cursor.execute("SELECT F.*, json_agg(json_build_object('nro_item', D.nro_item, 'cantidad', D.cantidad, 'codigo_producto', D.codigo_producto)) as detalles"
                    " FROM e01_factura as F LEFT JOIN e01_detalle_factura AS D ON F.nro_factura = D.nro_factura GROUP BY F.nro_factura")
     columns = [desc[0] for desc in cursor.description]
-    indexOfCodigo = columns.index('nro_factura')
-    columns[indexOfCodigo] = '_id'
     result = [dict(zip(columns, row)) for row in cursor]
     for row in result:
         if len(row['detalles']) == 1 and row['detalles'][0]['cantidad'] is None:
