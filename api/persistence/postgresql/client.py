@@ -7,7 +7,7 @@ from .PsycopgCursor import PsycopgCursor
 from ..model.Client import Client, ClientId
 
 
-def map_to_clientid(row) -> ClientId | None:
+def _map_to_clientid(row) -> ClientId | None:
     if not row:
         return None
 
@@ -54,7 +54,7 @@ async def get_clients() -> list[ClientId] | None:
         if not clients:
             return None
 
-        mapped = [map_to_clientid(row) for row in clients]
+        mapped = [_map_to_clientid(client) for client in clients]
         return [client for client in mapped if client is not None]
 
 
@@ -76,8 +76,7 @@ async def get_client_by_id(
         if not result:
             return None
 
-        client = map_to_clientid(result)
-        print(client)
+        client = _map_to_clientid(result)
         return client
 
 

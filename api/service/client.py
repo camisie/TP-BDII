@@ -2,48 +2,38 @@
 
 import sys
 
+from typing import Any
+
 from fastapi import HTTPException
 
-from persistence.model.Client import Client
-from persistence import client as clientDao
+from persistence.model.Client import Client, ClientId
+
+# from persistence.postgresql import client as clientDao
+from persistence.mongo import client as clientDao
 
 
-async def _client_return(
-    rows: list[tuple[str, int], str, int] | tuple[str, int]
-) -> dict:
+async def _client_return(rows: list[ClientId] | ClientId) -> dict:
     if not rows:
         return {}
 
-    client_columns = [
-        "id",
-        "name",
-        "surname",
-        "address",
-        "active",
-        "code",
-        "number",
-        "kind",
-    ]
-
     clients = {"clients": []}
-    try:
-        clients["clients"] = [dict(zip(client_columns, map(str, row))) for row in rows]
 
-    except TypeError:
-        clients["clients"] = [dict(zip(client_columns, map(str, rows)))]
+    if isinstance(rows, ClientId):
+        return rows.model_dump()
 
-    if len(clients["clients"]) == 1:
-        return clients["clients"][0]
+    if isinstance(rows[0], ClientId):
+        clients["clients"] = rows
+        return clients
 
-    return clients
-
-
-async def get_clients() -> dict:
-    client = await clientDao.get_clients()
-    return await _client_return(client)
+    return {}
 
 
-async def get_client_by_id(client_id: int) -> dict:
+async def get_clients():
+    clients = await clientDao.get_clients()
+    return await _client_return(clients)
+
+
+async def get_client_by_id(client_id: int | str):
     client = await clientDao.get_client_by_id(client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -51,13 +41,13 @@ async def get_client_by_id(client_id: int) -> dict:
     return await _client_return(client)
 
 
-async def create_client(client: Client) -> dict:
+async def create_client(client: Client) -> ClientId:
     new_id = await clientDao.create_client(client)
 
     return await get_client_by_id(new_id)
 
 
-async def update_client_by_id(client_id: int, new_client: Client) -> dict:
+async def update_client_by_id(client_id: int | str, new_client: Client) -> ClientId:
     if not await clientDao.client_exists(client_id):
         raise HTTPException(status_code=404, detail="Client not found")
 
@@ -65,7 +55,7 @@ async def update_client_by_id(client_id: int, new_client: Client) -> dict:
     return await get_client_by_id(client_id)
 
 
-async def delete_client(client_id: int) -> dict:
+async def delete_client(client_id: int | str) -> dict[None:None]:
     await clientDao.delete_client(client_id)
     return {}
 
