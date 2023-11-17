@@ -2,10 +2,9 @@
 
 import sys
 
+from .PsycopgCursor import PsycopgCursor
 
 from .model.Client import Client
-
-from .PsycopgCursor import PsycopgCursor
 
 
 async def _client_exists(client_id: int, aconn, acur) -> bool:
