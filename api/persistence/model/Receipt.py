@@ -4,19 +4,33 @@ from sys import exit
 
 from pydantic import BaseModel
 
+from .Product import Product
+
 
 class ReceiptDetail(BaseModel):
-    amount: int
-    product_id: int
+    nro_item: int
+    cantidad: int
+    producto: Product
+
+
+class ReceiptId(BaseModel):
+    id: str
+    nro_factura: int
+    fecha: str
+    total_sin_iva: float
+    iva: float
+    total_con_iva: float
+    nro_cliente: int
+    detalles: list[ReceiptDetail]
 
 
 class Receipt(BaseModel):
-    date: str
-    total_no_tax: float
+    fecha: str
+    total_sin_iva: float
     iva: float
-    total: float
-    client_id: int
-    details: list[ReceiptDetail]
+    total_con_iva: float
+    nro_cliente: int
+    detalles: list[ReceiptDetail]
 
 
 if __name__ == "__main__":

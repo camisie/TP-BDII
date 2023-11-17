@@ -60,9 +60,7 @@ async def get_clients() -> list[ClientId] | None:
         return [client for client in mapped if client is not None]
 
 
-async def get_client_by_id(
-    client_id: int | str,
-) -> ClientId | None:
+async def get_client_by_id(client_id: int | str) -> ClientId | None:
     async with PsycopgCursor() as (aconn, acur):
         await acur.execute(
             """

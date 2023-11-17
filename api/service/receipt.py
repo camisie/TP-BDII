@@ -6,86 +6,66 @@ from collections.abc import Callable
 
 from fastapi import HTTPException
 
-from persistence import receipt as receiptDao
+from persistence.model.Receipt import Receipt, ReceiptId
+
+# from persistence.postgresql import receipt as receiptDao
+
+from persistence.mongo import receipt as receiptDao
 
 
-def calculate_total(price: int, amount: int, iva: float) -> tuple[int, int]:
+def _calculate_total(price: int, amount: int, iva: float) -> tuple[int, float]:
     total_no_tax = price * amount
     total_with_tax = total_no_tax * (1 + iva / 100)
     return (total_no_tax, total_with_tax)
 
 
-async def _receipt_return(
-    rows: list[tuple[str, int, float], str, int, float] | tuple[str, int, float],
-    details_callback: Callable[
-        [int], list[tuple[str, int, float], str, int, float] | tuple[str, int, float]
-    ],
-) -> dict:
+def _complete_receipt_total(receipt: Receipt):
+    for detail in receipt.detalles:
+        # Calculate totals
+        (total_no_tax, total_with_tax) = _calculate_total(
+            detail.producto.precio, detail.cantidad, float(receipt.iva)
+        )
+
+        # Prices with four decimal places, maximum
+        receipt.total_sin_iva = float(round(total_no_tax, 2))
+        receipt.total_con_iva = float(round(total_with_tax, 2))
+
+    return receipt
+
+
+def _complete_receipts_total(receipts: list[Receipt]):
+    return list(map(_complete_receipt_total, receipts))
+
+
+async def _receipt_return(rows: ReceiptId | list[ReceiptId]) -> dict:
     if not rows:
         return {}
 
-    receipt_columns = [
-        "id",
-        "date",
-        "iva",
-        "client_id",
-    ]
-    details_columns = [
-        "amount",
-        "product_id",
-    ]
-
     receipts = {"receipts": []}
-    try:
-        receipts["receipts"] = [
-            dict(zip(receipt_columns, map(str, row))) for row in rows
-        ]
 
-    except TypeError:
-        receipts["receipts"] = [dict(zip(receipt_columns, map(str, rows)))]
+    if isinstance(rows, ReceiptId):
+        rows = _complete_receipt_total(rows)
+        return rows.model_dump()
 
-    for receipt in receipts["receipts"]:
-        rows = await details_callback(receipt[receipt_columns[0]])
-        if not rows:
-            continue
+    if isinstance(rows[0], ReceiptId):
+        receipts["receipts"] = _complete_receipts_total(rows)
+        return receipts
 
-        receipt["details"] = []
-
-        for row in rows:
-            details_dict = {}
-            for index, column in enumerate(details_columns):
-                details_dict[column] = str(row[index])
-
-            # Calculate totals
-            (total_no_tax, total_with_tax) = calculate_total(
-                row[2], row[0], float(receipt["iva"])
-            )
-
-            # Prices with four decimal places, maximum
-            receipt["total_no_tax"] = str(round(total_no_tax, 2))
-            receipt["total"] = str(round(total_with_tax, 2))
-
-            # Add details
-            receipt["details"].append(details_dict)
-
-    if len(receipts["receipts"]) == 1:
-        return receipts["receipts"][0]
-
-    return receipts
+    return {}
 
 
 async def get_receipts() -> dict:
     receipts = await receiptDao.get_receipts()
-    return await _receipt_return(receipts, receiptDao.get_receipt_details)
+    return await _receipt_return(receipts)
 
 
-async def get_receipt_by_id(receipt_id: int) -> dict:
+async def get_receipt_by_id(receipt_id: int | str) -> dict:
     receipt = await receiptDao.get_receipt_by_id(receipt_id)
 
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
 
-    return await _receipt_return(receipt, receiptDao.get_receipt_details)
+    return await _receipt_return(receipt)
 
 
 if __name__ == "__main__":

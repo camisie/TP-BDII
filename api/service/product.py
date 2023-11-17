@@ -6,8 +6,8 @@ from fastapi import HTTPException
 
 from persistence.model.Product import Product, ProductId
 
-from persistence.postgresql import product as productDao
-# from persistence.mongo import product as productDao
+# from persistence.postgresql import product as productDao
+from persistence.mongo import product as productDao
 
 
 async def _product_return(rows: list[ProductId] | ProductId) -> dict:
@@ -19,36 +19,7 @@ async def _product_return(rows: list[ProductId] | ProductId) -> dict:
     if isinstance(rows, ProductId):
         return rows.model_dump()
 
-    if isinstance(rows[0], ProductId):
-        products["products"] = rows
-        return products
-
-    return {}
-
-    if not rows:
-        return {}
-
-    product_columns = [
-        "id",
-        "brand",
-        "name",
-        "description",
-        "price",
-        "stock",
-    ]
-
-    products = {"products": []}
-    try:
-        products["products"] = [
-            dict(zip(product_columns, map(str, row))) for row in rows
-        ]
-
-    except TypeError:
-        products["products"] = [dict(zip(product_columns, map(str, rows)))]
-
-    if len(products["products"]) == 1:
-        return products["products"][0]
-
+    products["products"] = rows
     return products
 
 
