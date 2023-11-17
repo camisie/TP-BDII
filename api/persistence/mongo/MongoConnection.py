@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from os import environ
 
 from typing import Any, Dict
 
@@ -14,14 +15,14 @@ class MongoConnection:
         self,
         collection: str,
         db_name: str = "e01",
-        host: str = "localhost",
-        port: int = 27017,
+        host: str = environ.get("MONGO_HOST", "localhost"),
+        port: int | str = environ.get("MONGO_PORT", 27017),
     ):
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.db_name = db_name
 
-        self.client: MongoClient[Dict[str, Any]] = MongoClient(host, port)
+        self.client: MongoClient[Dict[str, Any]] = MongoClient(host, int(port))
         self.db = self.client[self.db_name]
         self.collection = self.get_collection(collection)
 
