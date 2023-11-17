@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 
 from sys import exit
-
 from pydantic import BaseModel
 
 
 class Client(BaseModel):
-    name: str
-    surname: str
-    address: str
-    active: int
+    nombre: str
+    apellido: str
+    direccion: str
+    activo: int
+
+
+class ClientId(BaseModel):
+    id: str
+    nombre: str
+    apellido: str
+    direccion: str
+    activo: int
 
 
 if __name__ == "__main__":
