@@ -14,6 +14,7 @@ class Product(BaseModel):
 
 class ProductId(BaseModel):
     id: str
+    codigo_producto: int
     marca: str
     nombre: str
     descripcion: str

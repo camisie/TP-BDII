@@ -6,6 +6,8 @@ from typing import Any, Dict
 
 from pymongo import MongoClient
 
+from bson.objectid import ObjectId
+
 
 class MongoConnection:
     def __init__(
@@ -28,6 +30,19 @@ class MongoConnection:
             raise RuntimeError("Empty collection")
 
         return self.db[collection]
+
+    def get_id(self, id: int | str | ObjectId, alternative_id: str) -> ObjectId | None:
+        if isinstance(id, ObjectId):
+            return id
+
+        if isinstance(id, int) or id.isdigit():
+            result = self.collection.find_one({alternative_id: int(id)})
+            if not result:
+                return None
+
+            return result.get("_id", None)
+
+        return ObjectId(id)
 
 
 if __name__ == "__main__":

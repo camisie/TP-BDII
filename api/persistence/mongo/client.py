@@ -13,18 +13,21 @@ def _get_connection():
     return MongoConnection("clientes")
 
 
-def _get_id(id: int | str | ObjectId):
-    if isinstance(id, str):
-        return ObjectId(id)
-
-    return id
+def _get_id(
+    id: int | str | ObjectId,
+    connection: MongoConnection,
+    alternative_id: str = "nro_cliente",
+) -> ObjectId | None:
+    return connection.get_id(id, alternative_id)
 
 
 async def client_exists(client_id: int | str | ObjectId) -> bool:
     conn = _get_connection()
-    client_id = _get_id(client_id)
+    id = _get_id(client_id, conn)
+    if not id:
+        return False
 
-    client = conn.collection.find_one({"_id": client_id})
+    client = conn.collection.find_one({"_id": id})
     if client:
         return True
 
@@ -52,9 +55,11 @@ async def get_clients() -> list[ClientId]:
 
 async def get_client_by_id(client_id: int | str | ObjectId) -> ClientId | None:
     conn = _get_connection()
-    client_id = _get_id(client_id)
+    id = _get_id(client_id, conn)
+    if not id:
+        return None
 
-    client = conn.collection.find_one({"_id": client_id})
+    client = conn.collection.find_one({"_id": id})
 
     if not client:
         return None
@@ -71,6 +76,9 @@ async def create_client(client: Client) -> int:
     if client_dict.get("id", None):
         client_dict.pop("id")
 
+    client_dict["nro_cliente"] = 0
+    client_dict["telefono"] = []
+
     client_id = conn.collection.insert_one(client_dict).inserted_id
 
     return client_id
@@ -80,17 +88,22 @@ async def update_client_by_id(
     client_id: int | str | ObjectId, new_client: Client
 ) -> int | str | ObjectId | None:
     conn = _get_connection()
-    client_id = _get_id(client_id)
+    id = _get_id(client_id, conn)
+    if not id:
+        return None
 
-    conn.collection.update_one({"_id": client_id}, {"$set": new_client.model_dump()})
+    conn.collection.update_one({"_id": id}, {"$set": new_client.model_dump()})
+
     return client_id
 
 
 async def delete_client(client_id: int | str | ObjectId) -> None:
     conn = _get_connection()
-    client_id = _get_id(client_id)
+    id = _get_id(client_id, conn)
+    if not id:
+        return None
 
-    conn.collection.delete_one({"_id": client_id})
+    conn.collection.delete_one({"_id": id})
 
     return None
 

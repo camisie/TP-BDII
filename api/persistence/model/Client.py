@@ -13,6 +13,7 @@ class Client(BaseModel):
 
 class ClientId(BaseModel):
     id: str
+    nro_cliente: int
     nombre: str
     apellido: str
     direccion: str

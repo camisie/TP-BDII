@@ -51,7 +51,10 @@ async def update_client_by_id(client_id: int | str, new_client: Client) -> Clien
     if not await clientDao.client_exists(client_id):
         raise HTTPException(status_code=404, detail="Client not found")
 
-    await clientDao.update_client_by_id(client_id, new_client)
+    id = await clientDao.update_client_by_id(client_id, new_client)
+    if not id:
+        raise HTTPException(status_code=404, detail="Client not found")
+
     return await get_client_by_id(client_id)
 
 

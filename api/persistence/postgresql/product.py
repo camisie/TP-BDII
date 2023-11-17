@@ -11,10 +11,12 @@ def _map_to_productid(row) -> ProductId | None:
     if not row:
         return None
 
-    columns = list(ProductId.__annotations__.keys())
+    columns = list(Product.__annotations__.keys())
+    columns.insert(0, "id")
 
     product = dict(zip(columns, row))
     product["id"] = str(product.get("id", ""))
+    product["codigo_producto"] = int(product.get("id", 0))
     return ProductId(**product)
 
 

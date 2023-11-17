@@ -11,10 +11,12 @@ def _map_to_clientid(row) -> ClientId | None:
     if not row:
         return None
 
-    client_columns = list(ClientId.__annotations__.keys())
+    columns = list(Client.__annotations__.keys())
+    columns.insert(0, "id")
 
-    client = dict(zip(client_columns, row))
+    client = dict(zip(columns, row))
     client["id"] = str(client.get("id", ""))
+    client["nro_cliente"] = int(client.get("id", 0))
     return ClientId(**client)
 
 

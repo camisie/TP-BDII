@@ -6,8 +6,8 @@ from fastapi import HTTPException
 
 from persistence.model.Product import Product, ProductId
 
-# from persistence.postgresql import product as productDao
-from persistence.mongo import product as productDao
+from persistence.postgresql import product as productDao
+# from persistence.mongo import product as productDao
 
 
 async def _product_return(rows: list[ProductId] | ProductId) -> dict:
