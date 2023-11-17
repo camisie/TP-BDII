@@ -5,11 +5,11 @@ from pymongo import MongoClient
 from datetime import datetime
 
 psql_params = {
-    'dbname': os.getenv('DB_NAME'),
-    'user': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASSWORD'),
-    'host': os.getenv('DB_HOST'),
-    'port': os.getenv('DB_PORT')
+    'dbname': os.getenv('PSQL_DB_NAME'),
+    'user': os.getenv('PSQL_USER'),
+    'password': os.getenv('PSQL_PASSWORD'),
+    'host': os.getenv('PSQL_HOST'),
+    'port': os.getenv('PSQL_PORT')
 }
 
 mongo_connection_string = f"mongodb://{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/"

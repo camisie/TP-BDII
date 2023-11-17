@@ -1,0 +1,15 @@
+{
+  "name": "queries_and_views",
+  "version": "1.0.0",
+  "description": "",
+  "main": "mongo_queries.js",
+  "scripts": {
+      "start": "node mongo_queries.js",
+      "views": "node mongo_views.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongo": "^0.1.0"
+  }
+}
