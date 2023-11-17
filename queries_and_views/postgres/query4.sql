@@ -1,0 +1,5 @@
+SELECT DISTINCT P.*
+FROM E01_PRODUCTO P
+JOIN E01_DETALLE_FACTURA DF ON P.codigo_producto = DF.codigo_producto;
+
+
