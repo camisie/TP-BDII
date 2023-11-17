@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import random
 
 from bson.objectid import ObjectId
 from .MongoConnection import MongoConnection
@@ -88,11 +89,19 @@ async def create_client(client: Client) -> int:
     if client_dict.get("id", None):
         client_dict.pop("id")
 
-    client_dict["nro_cliente"] = 0
+    new_client_number = random.randint(1, 999999999)
+    while not is_client_number_unique(new_client_number):
+        new_client_number = random.randint(1, 999999999)
+
+    client_dict["nro_cliente"] = new_client_number
 
     client_id = conn.collection.insert_one(client_dict).inserted_id
 
     return client_id
+
+
+def is_client_number_unique(client_id):
+    return _get_connection().collection.find_one({"nro_cliente": client_id}) is None
 
 
 async def update_client_by_id(

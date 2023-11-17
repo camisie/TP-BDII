@@ -4,7 +4,7 @@
   "description": "",
   "main": "mongo_queries.js",
   "scripts": {
-      "start": "node mongo_queries.js",
+      "queries": "node mongo_queries.js",
       "views": "node mongo_views.js"
   },
   "author": "",

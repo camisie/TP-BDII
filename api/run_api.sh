@@ -43,7 +43,7 @@ if [ -z "$API_DB" ]; then
 fi
 
 # Launch server
-uvicorn main:app --reload
+uvicorn main:app --reload --host "0.0.0.0" --port 8000
 
 # Move out of script dir
 if ! popd &> /dev/null; then

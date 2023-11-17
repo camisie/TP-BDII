@@ -7,6 +7,7 @@ const client = new MongoClient(uri);
 
 async function main() {
     client.connect();
+    console.log("Connected successfully to mongo, creating views...");
     const db = client.db("e01");
 
     await db.createCollection("facturas_ordenadas_por_fecha", { viewOn: "facturas", pipeline: [{ $sort: { fecha: 1 } }] });
@@ -29,5 +30,7 @@ async function main() {
     ]});
 
     client.close();
+    console.log("Views created successfully");
 }
 
+main()
