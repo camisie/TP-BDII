@@ -8,13 +8,16 @@ if ! pushd "${SCRIPT_DIR}" &> /dev/null; then
     return 2
 fi
 
-ENV_FILE="./activate_environment.sh"
-if [ ! -f "$ENV_FILE" ]; then
-    echo "Environment file not found. Aborting"
-    exit 1
+# Run local
+if [ -z "${I_AM_GROOT}" ]; then
+  ENV_FILE="./activate_environment.sh"
+  if [ ! -f "$ENV_FILE" ]; then
+      echo "Environment file not found. Aborting"
+      exit 1
+  fi
+  
+  source "${ENV_FILE}"
 fi
-
-source "${ENV_FILE}"
 
 if [ -z "$API_DB" ]; then
     API_DB=""
