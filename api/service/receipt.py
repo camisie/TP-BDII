@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
-
-from collections.abc import Callable
+from os import environ
 
 from fastapi import HTTPException
 
 from persistence.model.Receipt import Receipt, ReceiptId
 
-# from persistence.postgresql import receipt as receiptDao
-
-from persistence.mongo import receipt as receiptDao
+if environ.get("API_DB", None) == "mongodb":
+    from persistence.mongo import receipt as receiptDao
+else:
+    from persistence.postgresql import receipt as receiptDao
 
 
 def _calculate_total(price: int, amount: int, iva: float) -> tuple[int, float]:

@@ -3,7 +3,6 @@
 import sys
 
 from bson.objectid import ObjectId
-
 from .MongoConnection import MongoConnection
 
 from ..model.Product import Product, ProductId
@@ -69,7 +68,7 @@ async def get_product_by_id(product_id: int | str | ObjectId) -> ProductId | Non
     return product_obj
 
 
-async def create_product(product: Product) -> int:
+async def create_product(product: Product) -> ObjectId:
     conn = _get_connection()
     product_dict = product.model_dump()
 

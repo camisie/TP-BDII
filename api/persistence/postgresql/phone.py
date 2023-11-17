@@ -4,7 +4,16 @@ import sys
 
 from .PsycopgCursor import PsycopgCursor
 
-from .model.Phone import Phone
+from ..model.Phone import Phone
+
+
+def _map_to_phone(row) -> Phone | None:
+    if not row:
+        return None
+
+    columns = list(Phone.__annotations__.keys())
+    phones = dict(zip(columns, row))
+    return Phone(**phones)
 
 
 async def _phone_exists(code: int, number: int, aconn, acur) -> bool:
@@ -33,7 +42,7 @@ async def phone_exists(code: int, number: int) -> bool:
         return await _phone_exists(code, number, aconn, acur)
 
 
-async def get_phones() -> list[tuple[str, int], str, int] | tuple[str, int]:
+async def get_phones() -> list[Phone]:
     async with PsycopgCursor() as (aconn, acur):
         await acur.execute(
             """
@@ -43,12 +52,15 @@ async def get_phones() -> list[tuple[str, int], str, int] | tuple[str, int]:
             """
         )
 
-        return await acur.fetchall()
+        result = await acur.fetchall()
+        if not result:
+            return None
+
+        mapped = [_map_to_phone(phone) for phone in result]
+        return [phone for phone in mapped if phone is not None]
 
 
-async def get_phone_by_client_id(
-    client_id: int,
-) -> list[tuple[str, int], str, int] | tuple[str, int]:
+async def get_phone_by_client_id(client_id: int | str) -> list[Phone]:
     async with PsycopgCursor() as (aconn, acur):
         await acur.execute(
             """
@@ -60,7 +72,12 @@ async def get_phone_by_client_id(
             (client_id,),
         )
 
-        return await acur.fetchall()
+        result = await acur.fetchall()
+        if not result:
+            return None
+
+        mapped = [_map_to_phone(phone) for phone in result]
+        return [phone for phone in mapped if phone is not None]
 
 
 async def create_phone(client_id: int, phone: Phone) -> int:
@@ -72,7 +89,7 @@ async def create_phone(client_id: int, phone: Phone) -> int:
               VALUES
                   (%s, %s, %s, %s)
               """,
-            (phone.code, phone.number, phone.kind, client_id),
+            (phone.codigo_area, phone.numero, phone.tipo, client_id),
         )
         await aconn.commit()
 
@@ -88,10 +105,10 @@ async def update_phone(client_id: int, new_phone: Phone) -> int:
             WHERE codigo_area = %(code)s AND nro_telefono = %(number)s 
             """,
             {
-                "kind": new_phone.kind,
+                "kind": new_phone.tipo,
                 "id": client_id,
-                "code": new_phone.code,
-                "number": new_phone.number,
+                "code": new_phone.codigo_area,
+                "number": new_phone.numero,
             },
         )
 

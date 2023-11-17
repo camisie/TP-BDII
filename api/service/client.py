@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
-
-from typing import Any
+from os import environ
 
 from fastapi import HTTPException
 
 from persistence.model.Client import Client, ClientId
 
-# from persistence.postgresql import client as clientDao
-from persistence.mongo import client as clientDao
+if environ.get("API_DB", None) == "mongodb":
+    from persistence.mongo import client as clientDao
+    from persistence.mongo import phone as phoneDao
+else:
+    from persistence.postgresql import client as clientDao
+    from persistence.postgresql import phone as phoneDao
 
 
 async def _client_return(rows: list[ClientId] | ClientId) -> dict:
@@ -42,6 +45,10 @@ async def get_client_by_id(client_id: int | str):
 
 
 async def create_client(client: Client) -> ClientId:
+    for phone in client.telefono:
+        if await phoneDao.phone_exists(phone.codigo_area, phone.numero):
+            raise HTTPException(status_code=409, detail="Phone already exists")
+
     new_id = await clientDao.create_client(client)
 
     return await get_client_by_id(new_id)

@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 
 import sys
+from os import environ
 
 from fastapi import HTTPException
 
 from persistence.model.Phone import Phone
-from persistence import phone as phoneDao
-from persistence import client as clientDao
+
+if environ.get("API_DB", None) == "mongodb":
+    from persistence.mongo import phone as phoneDao
+    from persistence.mongo import client as clientDao
+
+else:
+    from persistence.postgresql import phone as phoneDao
+    from persistence.postgresql import client as clientDao
 
 
-async def _phone_return(
-    rows: list[tuple[str, int], str, int] | tuple[str, int]
-) -> dict:
+async def _phone_return(rows: Phone | list[Phone]):
     phones = {"phones": []}
-
     if not rows:
         return phones
 
-    phone_columns = ["code", "number", "kind", "client_id"]
+    if isinstance(rows, Phone):
+        return rows.model_dump()
 
-    try:
-        phones["phones"] = [dict(zip(phone_columns, map(str, row))) for row in rows]
-
-    except TypeError:
-        phones["phones"] = [dict(zip(phone_columns, map(str, rows)))]
-
+    phones["phones"] = rows
     return phones
 
 
@@ -45,7 +45,7 @@ async def create_phone(client_id: int, phone: Phone) -> dict:
     if not await clientDao.client_exists(client_id):
         raise HTTPException(status_code=404, detail="Client not found")
 
-    if await phoneDao.phone_exists(phone.code, phone.number):
+    if await phoneDao.phone_exists(phone.codigo_area, phone.numero):
         raise HTTPException(status_code=409, detail="Phone already exists")
 
     await phoneDao.create_phone(client_id, phone)
@@ -57,7 +57,7 @@ async def update_phone(client_id: int, phone: Phone) -> dict:
     if not await clientDao.client_exists(client_id):
         raise HTTPException(status_code=404, detail="Client not found")
 
-    if not await phoneDao.phone_exists(phone.code, phone.number):
+    if not await phoneDao.phone_exists(phone.codigo_area, phone.numero):
         raise HTTPException(status_code=404, detail="Phone doesn't exist")
 
     await phoneDao.update_phone(client_id, phone)

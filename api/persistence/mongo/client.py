@@ -3,10 +3,10 @@
 import sys
 
 from bson.objectid import ObjectId
-
 from .MongoConnection import MongoConnection
 
 from ..model.Client import Client, ClientId
+from ..model.Phone import Phone
 
 
 def _get_connection():
@@ -34,6 +34,17 @@ async def client_exists(client_id: int | str | ObjectId) -> bool:
     return False
 
 
+def _model_phones(phones) -> list[Phone]:
+    def _model_phone(phone) -> Phone:
+        return Phone(**phone)
+
+    phone_list: list[Phone] = []
+    for phone in phones:
+        phone_list.append(_model_phone(phone))
+
+    return phone_list
+
+
 async def get_clients() -> list[ClientId]:
     conn = _get_connection()
     clients = conn.collection.find()
@@ -45,7 +56,8 @@ async def get_clients() -> list[ClientId]:
 
         try:
             id = str(client.pop("_id"))
-            client_obj = ClientId(id=id, **client)
+            phone = _model_phones(client.pop("telefono"))
+            client_obj = ClientId(id=id, telefono=phone, **client)
             clients_list.append(client_obj)
         except TypeError:
             pass
@@ -60,12 +72,12 @@ async def get_client_by_id(client_id: int | str | ObjectId) -> ClientId | None:
         return None
 
     client = conn.collection.find_one({"_id": id})
-
     if not client:
         return None
 
     id = str(client.pop("_id"))
-    client_obj = ClientId(id=id, **client)
+    phone = _model_phones(client.pop("telefono"))
+    client_obj = ClientId(id=id, telefono=phone, **client)
     return client_obj
 
 
@@ -77,7 +89,6 @@ async def create_client(client: Client) -> int:
         client_dict.pop("id")
 
     client_dict["nro_cliente"] = 0
-    client_dict["telefono"] = []
 
     client_id = conn.collection.insert_one(client_dict).inserted_id
 
@@ -92,7 +103,12 @@ async def update_client_by_id(
     if not id:
         return None
 
-    conn.collection.update_one({"_id": id}, {"$set": new_client.model_dump()})
+    client = conn.collection.find_one({"_id": id})
+
+    new_client_obj = new_client.model_dump()
+    new_client_obj["telefono"] = client.get("telefono", []) if client else []
+
+    conn.collection.update_one({"_id": id}, {"$set": new_client_obj})
 
     return client_id
 

@@ -6,9 +6,21 @@ from pydantic import BaseModel
 
 
 class Phone(BaseModel):
-    code: int
-    number: int
-    kind: str
+    codigo_area: int
+    numero: int
+    tipo: str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "codigo_area": "11",
+                    "numero": "12345678",
+                    "tipo": "X",
+                }
+            ]
+        }
+    }
 
 
 if __name__ == "__main__":

@@ -3,12 +3,29 @@
 from sys import exit
 from pydantic import BaseModel
 
+from .Phone import Phone
+
 
 class Client(BaseModel):
     nombre: str
     apellido: str
     direccion: str
     activo: int
+    telefono: list[Phone]
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "nombre": "pedro",
+                    "apellido": "lopez",
+                    "direccion": "su casa 123",
+                    "activo": 3,
+                    "telefono": [],
+                }
+            ]
+        }
+    }
 
 
 class ClientId(BaseModel):
@@ -18,6 +35,7 @@ class ClientId(BaseModel):
     apellido: str
     direccion: str
     activo: int
+    telefono: list[Phone]
 
 
 if __name__ == "__main__":

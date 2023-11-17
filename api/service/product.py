@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
+from os import environ
 
 from fastapi import HTTPException
 
 from persistence.model.Product import Product, ProductId
 
-# from persistence.postgresql import product as productDao
-from persistence.mongo import product as productDao
+if environ.get("API_DB", None) == "mongodb":
+    from persistence.mongo import product as productDao
+else:
+    from persistence.postgresql import product as productDao
 
 
 async def _product_return(rows: list[ProductId] | ProductId) -> dict:

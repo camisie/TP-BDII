@@ -4,11 +4,9 @@ import sys
 from typing import Any
 
 from bson.objectid import ObjectId
-
 from .MongoConnection import MongoConnection
 
 from .product import get_product_by_id
-
 from ..model.Receipt import ReceiptId
 
 

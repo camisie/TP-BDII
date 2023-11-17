@@ -56,17 +56,17 @@ async def create_client(client: Client):
 
 
 @app.get("/clients/{client_id}")
-async def get_client(client_id: int):
+async def get_client(client_id: int | str):
     return await client_service.get_client_by_id(client_id)
 
 
 @app.put("/clients/{client_id}")
-async def update_client(client_id: int, client: Client):
+async def update_client(client_id: int | str, client: Client):
     return await client_service.update_client_by_id(client_id, client)
 
 
 @app.delete("/clients/{client_id}")
-async def remove_client(client_id: int):
+async def remove_client(client_id: int | str):
     return await client_service.delete_client(client_id)
 
 
@@ -79,22 +79,24 @@ async def get_phones():
 
 
 @app.get("/phones/{client_id}")
-async def get_phone_by_client_id(client_id: int):
+async def get_phone_by_client_id(client_id: int | str):
     return await phone_service.get_phone_by_client_id(client_id)
 
 
 @app.put("/phones/{client_id}")
-async def create_or_update_phone(client_id: int, phone: Phone):
+async def update_phone(client_id: int | str, phone: Phone):
     return await phone_service.update_phone(client_id, phone)
 
 
 @app.post("/phones/{client_id}")
-async def create_phone(client_id: int, phone: Phone):
+async def create_phone(client_id: int | str, phone: Phone):
     return await phone_service.create_phone(client_id, phone)
 
 
 @app.delete("/phones/{client_id}")
-async def remove_phone(client_id: int, code: int | None, number: int | None):
+async def remove_phone(
+    client_id: int | str, code: int | None = None, number: int | None = None
+):
     if code and number:
         return await phone_service.delete_phone(client_id, code, number)
     if not code and not number:
@@ -107,7 +109,7 @@ async def remove_phone(client_id: int, code: int | None, number: int | None):
     )
 
 
-# =============== Products ===============
+# # =============== Products ===============
 
 
 @app.get("/products")
@@ -121,17 +123,17 @@ async def create_product(product: Product):
 
 
 @app.get("/products/{product_id}")
-async def get_product(product_id: int):
+async def get_product(product_id: int | str):
     return await product_service.get_product_by_id(product_id)
 
 
 @app.put("/products/{product_id}")
-async def update_product(product_id: int, product: Product):
+async def update_product(product_id: int | str, product: Product):
     return await product_service.update_product_by_id(product_id, product)
 
 
 @app.delete("/products/{product_id}")
-async def remove_product(product_id: int):
+async def remove_product(product_id: int | str):
     return await product_service.delete_product(product_id)
 
 
@@ -144,7 +146,7 @@ async def get_receipts():
 
 
 @app.get("/receipts/{receipt_id}")
-async def get_receipt(receipt_id: int):
+async def get_receipt(receipt_id: int | str):
     return await receipt_service.get_receipt_by_id(receipt_id)
 
 
