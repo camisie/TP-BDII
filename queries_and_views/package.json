@@ -4,7 +4,8 @@
   "description": "",
   "main": "mongo_queries.js",
   "scripts": {
-      "start": "node mongo_queries.js"
+      "start": "node mongo_queries.js",
+      "views": "node mongo_views.js"
   },
   "author": "",
   "license": "ISC",

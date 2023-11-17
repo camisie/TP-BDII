@@ -1,46 +1,33 @@
-// 1
-db.facturas.aggregate([
-    {
-        $project: {
-            nro_factura: 1,
-            fecha: 1
-        }
-    },
-    {
-        $sort: {
-            fecha: 1
-        }
-    },
-    {
-        $out: "Vista_FacturasOrdenadas"
-    }
-])
+const { MongoClient } = require("mongodb");
 
-// 2
-db.productos.aggregate([
-    {
-        $lookup: {
-            from: "detalle_factura",
-            localField: "codigo_producto",
-            foreignField: "codigo_producto",
-            as: "detalle_factura"
+const mongo_host = process.env.MONGO_HOST || "localhost";
+const mongo_port = process.env.MONGO_PORT || 27017;
+const uri = `mongodb://${mongo_host}:${mongo_port}`;
+const client = new MongoClient(uri);
+
+async function main() {
+    client.connect();
+    const db = client.db("e01");
+
+    await db.createCollection("facturas_ordenadas_por_fecha", { viewOn: "facturas", pipeline: [{ $sort: { fecha: 1 } }] });
+
+    await db.createCollection("productos_sin_facturas", { viewOn: "productos", pipeline: [
+        {
+            "$lookup": {
+                "from": "facturas",
+                "localField": "codigo_producto",
+                "foreignField": "detalles.codigo_producto",
+                "as": "facturas"
+            }
+        },
+        {
+            "$match": { "facturas": { "$eq": [] } }
+        },
+        {
+            "$project": { "facturas": 0 }
         }
-    },
-    {
-        $match: {
-            "detalle_factura": { $size: 0 }
-        }
-    },
-    {
-        $project: {
-            _id: 0,
-            codigo_producto: 1,
-            marca: 1,
-            nombre: 1,
-            descripcion: 1
-        }
-    },
-    {
-        $out: "Vista_ProductosNoFacturados"
-    }
-])
+    ]});
+
+    client.close();
+}
+
