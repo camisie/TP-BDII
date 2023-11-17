@@ -4,13 +4,27 @@ import sys
 
 from fastapi import HTTPException
 
-from persistence.model.Product import Product
-from persistence import product as productDao
+from persistence.model.Product import Product, ProductId
+
+# from persistence.postgresql import product as productDao
+from persistence.mongo import product as productDao
 
 
-async def _product_return(
-    rows: list[tuple[str, int, float], str, int, float] | tuple[str, int, float]
-) -> dict:
+async def _product_return(rows: list[ProductId] | ProductId) -> dict:
+    if not rows:
+        return {}
+
+    products = {"products": []}
+
+    if isinstance(rows, ProductId):
+        return rows.model_dump()
+
+    if isinstance(rows[0], ProductId):
+        products["products"] = rows
+        return products
+
+    return {}
+
     if not rows:
         return {}
 
@@ -38,12 +52,12 @@ async def _product_return(
     return products
 
 
-async def get_products() -> dict:
+async def get_products():
     products = await productDao.get_products()
     return await _product_return(products)
 
 
-async def get_product_by_id(product_id: int) -> dict:
+async def get_product_by_id(product_id: int | str):
     product = await productDao.get_product_by_id(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -51,13 +65,13 @@ async def get_product_by_id(product_id: int) -> dict:
     return await _product_return(product)
 
 
-async def create_product(product: Product) -> dict:
+async def create_product(product: Product):
     new_product_id = await productDao.create_product(product)
 
     return await get_product_by_id(new_product_id)
 
 
-async def update_product_by_id(product_id: int, new_product: Product) -> dict:
+async def update_product_by_id(product_id: int | str, new_product: Product):
     if not await productDao.product_exists(product_id):
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -66,7 +80,7 @@ async def update_product_by_id(product_id: int, new_product: Product) -> dict:
     return await get_product_by_id(product_id)
 
 
-async def delete_product(product_id: int) -> dict:
+async def delete_product(product_id: int | str):
     await productDao.delete_product(product_id)
     return {}
 

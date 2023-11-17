@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 
 from sys import exit
-
 from pydantic import BaseModel
 
 
 class Product(BaseModel):
-    brand: str
-    name: str
-    description: str
-    price: float
+    marca: str
+    nombre: str
+    descripcion: str
+    precio: float
+    stock: int
+
+
+class ProductId(BaseModel):
+    id: str
+    marca: str
+    nombre: str
+    descripcion: str
+    precio: float
     stock: int
 
 

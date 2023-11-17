@@ -9,11 +9,20 @@ from .MongoConnection import MongoConnection
 from ..model.Client import Client, ClientId
 
 
-async def client_exists(client_id: int | str | ObjectId) -> bool:
-    conn = MongoConnection("clientes")
+def _get_connection():
+    return MongoConnection("clientes")
 
-    if isinstance(client_id, str):
-        client_id = ObjectId(client_id)
+
+def _get_id(id: int | str | ObjectId):
+    if isinstance(id, str):
+        return ObjectId(id)
+
+    return id
+
+
+async def client_exists(client_id: int | str | ObjectId) -> bool:
+    conn = _get_connection()
+    client_id = _get_id(client_id)
 
     client = conn.collection.find_one({"_id": client_id})
     if client:
@@ -23,7 +32,7 @@ async def client_exists(client_id: int | str | ObjectId) -> bool:
 
 
 async def get_clients() -> list[ClientId]:
-    conn = MongoConnection("clientes")
+    conn = _get_connection()
     clients = conn.collection.find()
 
     clients_list: list[ClientId] = []
@@ -42,9 +51,8 @@ async def get_clients() -> list[ClientId]:
 
 
 async def get_client_by_id(client_id: int | str | ObjectId) -> ClientId | None:
-    conn = MongoConnection("clientes")
-    if isinstance(client_id, str):
-        client_id = ObjectId(client_id)
+    conn = _get_connection()
+    client_id = _get_id(client_id)
 
     client = conn.collection.find_one({"_id": client_id})
 
@@ -57,7 +65,7 @@ async def get_client_by_id(client_id: int | str | ObjectId) -> ClientId | None:
 
 
 async def create_client(client: Client) -> int:
-    conn = MongoConnection("clientes")
+    conn = _get_connection()
     client_dict = client.model_dump()
 
     if client_dict.get("id", None):
@@ -71,18 +79,16 @@ async def create_client(client: Client) -> int:
 async def update_client_by_id(
     client_id: int | str | ObjectId, new_client: Client
 ) -> int | str | ObjectId | None:
-    conn = MongoConnection("clientes")
-    if isinstance(client_id, str):
-        client_id = ObjectId(client_id)
+    conn = _get_connection()
+    client_id = _get_id(client_id)
 
     conn.collection.update_one({"_id": client_id}, {"$set": new_client.model_dump()})
     return client_id
 
 
 async def delete_client(client_id: int | str | ObjectId) -> None:
-    conn = MongoConnection("clientes")
-    if isinstance(client_id, str):
-        client_id = ObjectId(client_id)
+    conn = _get_connection()
+    client_id = _get_id(client_id)
 
     conn.collection.delete_one({"_id": client_id})
 
