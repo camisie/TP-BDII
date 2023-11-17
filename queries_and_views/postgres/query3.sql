@@ -1,0 +1,8 @@
+SELECT *
+FROM E01_CLIENTE C
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM E01_FACTURA F
+    WHERE C.nro_cliente = F.nro_cliente
+);
+
