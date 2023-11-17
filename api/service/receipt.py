@@ -2,27 +2,11 @@
 
 import sys
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 
 from fastapi import HTTPException
-from pydantic import BaseModel
 
-
-from .PsycopgCursor import PsycopgCursor
-
-
-# class ReceiptDetail(BaseModel):
-#     amount: int
-#     product_id: int
-#
-#
-# class Receipt(BaseModel):
-#     date: str
-#     total_no_tax: float
-#     iva: float
-#     total: float
-#     client_id: int
-#     details: list[ReceiptDetail]
+from persistence import receipt as receiptDao
 
 
 def calculate_total(price: int, amount: int, iva: float) -> tuple[int, int]:
@@ -31,7 +15,15 @@ def calculate_total(price: int, amount: int, iva: float) -> tuple[int, int]:
     return (total_no_tax, total_with_tax)
 
 
-async def _receipt_return(fetch: Awaitable, details_callback: Callable) -> dict:
+async def _receipt_return(
+    rows: list[tuple[str, int, float], str, int, float] | tuple[str, int, float],
+    details_callback: Callable[
+        [int], list[tuple[str, int, float], str, int, float] | tuple[str, int, float]
+    ],
+) -> dict:
+    if not rows:
+        return {}
+
     receipt_columns = [
         "id",
         "date",
@@ -42,10 +34,6 @@ async def _receipt_return(fetch: Awaitable, details_callback: Callable) -> dict:
         "amount",
         "product_id",
     ]
-
-    rows = await fetch()
-    if not rows:
-        return {}
 
     receipts = {"receipts": []}
     try:
@@ -86,84 +74,18 @@ async def _receipt_return(fetch: Awaitable, details_callback: Callable) -> dict:
     return receipts
 
 
-async def _receipt_exists(receipt_id: int, aconn, acur) -> bool:
-    await acur.execute(
-        """
-        SELECT
-            1
-        FROM e01_factura
-        WHERE nro_factura = (%s)
-        """,
-        (receipt_id,),
-    )
-    receipt = await acur.fetchone()
-    if receipt:
-        return True
-
-    return False
-
-
-async def receipt_exists(receipt_id: int) -> bool:
-    async with PsycopgCursor() as (aconn, acur):
-        return await _receipt_exists(receipt_id, aconn, acur)
-
-
 async def get_receipts() -> dict:
-    async with PsycopgCursor() as (aconn, acur):
-
-        async def callback(id: int):
-            await acur.execute(
-                """
-                SELECT
-                    cantidad, codigo_producto, precio
-                FROM  e01_detalle_factura NATURAL JOIN e01_producto
-                WHERE nro_factura = (%s)
-                """,
-                (id,),
-            )
-            return await acur.fetchall()
-
-        await acur.execute(
-            """
-            SELECT
-                nro_factura, fecha, iva
-            FROM  e01_factura
-            """
-        )
-
-        return await _receipt_return(acur.fetchall, callback)
+    receipts = await receiptDao.get_receipts()
+    return await _receipt_return(receipts, receiptDao.get_receipt_details)
 
 
 async def get_receipt_by_id(receipt_id: int) -> dict:
-    async with PsycopgCursor() as (aconn, acur):
+    receipt = await receiptDao.get_receipt_by_id(receipt_id)
 
-        async def callback(id: int):
-            await acur.execute(
-                """
-                SELECT
-                    cantidad, codigo_producto, precio
-                FROM  e01_detalle_factura NATURAL JOIN e01_producto
-                WHERE nro_factura = (%s)
-                """,
-                (id,),
-            )
-            return await acur.fetchall()
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
 
-        await acur.execute(
-            """
-            SELECT
-                nro_factura, fecha, iva
-            FROM  e01_factura
-            WHERE nro_factura = (%s)
-            """,
-            (receipt_id,),
-        )
-
-        receipt = await _receipt_return(acur.fetchone, callback)
-        if not receipt:
-            raise HTTPException(status_code=404, detail="Receipt not found")
-
-        return receipt
+    return await _receipt_return(receipt, receiptDao.get_receipt_details)
 
 
 if __name__ == "__main__":
