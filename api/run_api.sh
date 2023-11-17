@@ -16,26 +16,28 @@ fi
 
 source "${ENV_FILE}"
 
-API_DB=""
-echo "Select the database:"
-options=("MongoDB" "PostgreSQL")
-
-select opt in "${options[@]}"
-do
-    case ${opt,,} in
-        "mongodb")
-            API_DB="mongodb"
-            break
-            ;;
-        "postgresql")
-            API_DB="postgresql"
-            break
-            ;;
-        *) echo "Invalid option";;
-    esac
-done
-
-export API_DB
+if [ -z "$API_DB" ]; then
+    API_DB=""
+    echo "Select the database:"
+    options=("MongoDB" "PostgreSQL")
+    
+    select opt in "${options[@]}"
+    do
+        case ${opt,,} in
+            "mongodb")
+                API_DB="mongodb"
+                break
+                ;;
+            "postgresql")
+                API_DB="postgresql"
+                break
+                ;;
+            *) echo "Invalid option";;
+        esac
+    done
+    
+    export API_DB
+fi
 
 # Launch server
 uvicorn main:app --reload
